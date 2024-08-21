@@ -1,10 +1,12 @@
-'use strict';
-const { Model } = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 
 module.exports = (sequelize, DataTypes) => {
 	class Message extends Model {
-		static associate(models) {}
+		static associate(models) {
+		}
 	}
+
 	Message.init(
 		{
 			endToEndId: {
@@ -36,11 +38,11 @@ module.exports = (sequelize, DataTypes) => {
 				allowNull: false,
 			},
 		},
-		{}
+		{
+			sequelize,
+			modelName: "Message",
+		}
 	);
-
-	Message.associate = function (models) {
-	};
 
 	return Message;
 };

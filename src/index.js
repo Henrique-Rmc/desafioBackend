@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 const express = require("express");
 const messageRoutes = require("../routes/messageRoutes");
+const { sequelize } = require("../models");
 
 const app = express();
 
@@ -10,6 +11,14 @@ app.use(express.json());
 
 app.use("/", messageRoutes);
 
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-});
+sequelize
+	.sync({ force: false })
+	.then(() => {
+		console.log("Database synced!");
+		app.listen(PORT, () => {
+			console.log(`Server running on port ${PORT}`);
+		});
+	})
+	.catch((err) => {
+		console.error("Unable to sync database:", err);
+	});
