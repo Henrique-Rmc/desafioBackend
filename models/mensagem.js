@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
 			campoLivre: DataTypes.STRING,
 			txId: DataTypes.STRING,
 			dataHoraPagamento: DataTypes.DATE,
+			lida: {
+				type: DataTypes.BOOLEAN,
+				defaultValue: false,
+			},
 		},
 		{
 			sequelize,

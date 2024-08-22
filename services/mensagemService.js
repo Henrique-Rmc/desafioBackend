@@ -2,6 +2,9 @@ const { v4: uuidv4 } = require("uuid");
 const { Mensagem, Cliente } = require("../models");
 
 class MensagemService {
+
+
+
 	static generateCpfCnpj() {
 		return Math.floor(10000000000 + Math.random() * 90000000000).toString();
 	}
