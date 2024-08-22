@@ -8,7 +8,7 @@ class mensagemController {
 			const { ispb } = req.params;
 			const acceptHeader = req.headers.accept;
 
-			const mensagem = await mensagemService.get_message(ispb, acceptHeader);
+			const mensagem = await mensagemService.getMensagens(ispb, acceptHeader);
 
 			res.status(200).json(mensagem);
 		} catch (error) {

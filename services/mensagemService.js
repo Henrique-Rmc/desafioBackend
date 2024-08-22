@@ -4,16 +4,21 @@ const Generator = require("../utils/generator"); // Importando a nova classe Gen
 class MensagemService {
 
 
-	
 	static async generateRandomMensagens(ispb, count) {
 		try {
 			const mensagens = [];
-
-			const recebedorData = Generator.generateCliente("Recebedor", ispb);
-			const [recebedor] = await Cliente.findOrCreate({
-				where: { cpfCnpj: recebedorData.cpfCnpj },
-				defaults: recebedorData,
+			const recebedor = await Cliente.findOne({
+				where: { ispb: ispb },
 			});
+
+			if (!recebedor) {
+				const recebedorData = Generator.generateCliente("Recebedor", ispb);
+
+				[recebedor] = await Cliente.findOrCreate({
+					where: { cpfCnpj: recebedorData.cpfCnpj },
+					defaults: recebedorData,
+				});
+			}
 
 			for (let i = 0; i < count; i++) {
 				const pagadorData = Generator.generateCliente("Pagador");
