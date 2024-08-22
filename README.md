@@ -13,14 +13,16 @@ https://www.bcb.gov.br/content/estabilidadefinanceira/cedsfn/Manual%20das%20Inte
 
 páginas 20-26
 
-É responsabilidade do PSP buscar as mensagens disponíveis a ele. Para isso, deve
-iniciar a leitura da saída através de um GET como o que segue:
-GET /api/v1/out/{ispb}/stream/start
+# Recebimento de mensagens para um ispb:
+cabeçalho Accept.
 
-{ispb} corresponde ao código ISPB do PSP.
-O PSP pode optar por receber mensagens avulsas (uma por requisição) ou receber
-pacotes com uma ou mais mensagens em uma mesma resposta. A escolha é feita
-através do cabeçalho “Accept”. Quando o cabeçalho for inexistente ou seu valor for
-“application/xml”, a API retornará apenas uma mensagem. Quando seu valor for
-“multipart/mixed”, poderá retornar múltiplas mensagens em uma mesma reposta.
-A API retorna, no máximo, 10 mensagens a cada requisição com multipart.
+## inexistente ou application/json
+retorna uma mensagem,  200, pull next
+
+## multipart/jso
+pode retornar multiplas mensagens, máximo 10
+
+## Quando nao há mensagens, 204
+
+## Analisando, percebi que existe a necessidade de que mensagem contenham entidades e relacionamentos com pagador e recebedor, reestruturei o código de criaçãod de mensagens
+

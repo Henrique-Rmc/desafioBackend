@@ -2,7 +2,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable("Messages", {
+    await queryInterface.createTable("Mensagens", {
 			id: {
 				allowNull: false,
 				autoIncrement: true,
@@ -11,45 +11,48 @@ module.exports = {
 			},
 			endToEndId: {
 				type: Sequelize.STRING,
-				allowNull: false,
 			},
 			valor: {
 				type: Sequelize.FLOAT,
-				allowNull: false,
-			},
-			pagador: {
-				type: Sequelize.JSON,
-				allowNull: false,
-			},
-			recebedor: {
-				type: Sequelize.JSON,
-				allowNull: false,
 			},
 			campoLivre: {
 				type: Sequelize.STRING,
-				allowNull: true,
 			},
 			txId: {
 				type: Sequelize.STRING,
-				allowNull: false,
 			},
 			dataHoraPagamento: {
 				type: Sequelize.DATE,
-				allowNull: false,
+			},
+			pagadorId: {
+				type: Sequelize.INTEGER,
+				references: {
+					model: "Clientes",
+					key: "id",
+				},
+				onUpdate: "CASCADE",
+				onDelete: "SET NULL",
+			},
+			recebedorId: {
+				type: Sequelize.INTEGER,
+				references: {
+					model: "Clientes",
+					key: "id",
+				},
+				onUpdate: "CASCADE",
+				onDelete: "SET NULL",
 			},
 			createdAt: {
 				allowNull: false,
 				type: Sequelize.DATE,
-				defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
 			},
 			updatedAt: {
 				allowNull: false,
 				type: Sequelize.DATE,
-				defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
 			},
 		});
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('Messages');
+    await queryInterface.dropTable('Mensagens');
   }
 };
