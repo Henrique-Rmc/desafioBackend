@@ -19,10 +19,10 @@ cabeçalho Accept.
 ## inexistente ou application/json
 retorna uma mensagem,  200, pull next
 
-## multipart/jso
+## multipart/json
 pode retornar multiplas mensagens, máximo 10
 
-## Quando nao há mensagens, 204
+Quando nao há mensagens, 204
 
-## Analisando, percebi que existe a necessidade de que mensagem contenham entidades e relacionamentos com pagador e recebedor, reestruturei o código de criaçãod de mensagens
+Analisando, percebi que existe a necessidade de que mensagem contenham entidades e relacionamentos com pagador e recebedor, reestruturei o código de criaçãod de mensagens
 

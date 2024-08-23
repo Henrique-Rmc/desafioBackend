@@ -1,4 +1,4 @@
-const mensagemService  = require("../services/mensagemService");
+const mensagemService = require("../services/mensagemService");
 
 const { Mensagem } = require("../models");
 
@@ -7,10 +7,25 @@ class mensagemController {
 		try {
 			const { ispb } = req.params;
 			const acceptHeader = req.headers.accept;
+			const lastMessageId = req.query.lastMessageId;
 
-			const mensagem = await mensagemService.getMensagens(ispb, acceptHeader);
+			const result = await mensagemService.getMensagens(
+				ispb,
+				acceptHeader,
+				lastMessageId
+			);
+			if (result.status === 204) {
+				return res.status(204).send();
+			}
+			if (result.multipart) {
+				res.setHeader("Content-Type", "multipart/json")
+				res.setHeader("Pull-Next", result.headers["Pull-Next"])
+				return res.sent(result.body)
+			} else {
+				res.setHeader("Pull-Next", result.headers["Pull-Next"])
+				return res.status(200).json(result.mensagem)
+			}
 
-			res.status(200).json(mensagem);
 		} catch (error) {
 			next(error);
 		}

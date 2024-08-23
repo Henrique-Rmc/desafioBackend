@@ -1,11 +1,11 @@
 const { Mensagem, Cliente, sequelize } = require("../models");
-const Generator = require("../utils/entityGenerator"); 
-const MessageFormatter = require("../utils/messageFormatter")
+const Generator = require("../utils/entityGenerator");
+const MessageFormatter = require("../utils/messageFormatter");
 
 const { Op } = require("sequelize");
 
 class MensagemService {
-	static async getMensagens(ispb, acceptHeader) {
+	static async getMensagens(ispb, acceptHeader, lastMessageId) {
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
 				const recebedor = await Cliente.findOne({
@@ -14,13 +14,13 @@ class MensagemService {
 				});
 
 				if (!recebedor) {
-					return null;
+					return { status: 204 };
 				}
 
 				const mensagens = await Mensagem.findAll({
 					where: {
 						recebedorId: recebedor.id,
-						lida: false,
+						id: {[Op.gt]: lastMessageId || 0 },
 					},
 					include: [
 						{ model: Cliente, as: "pagador" },
@@ -32,14 +32,12 @@ class MensagemService {
 				});
 
 				if (mensagens.length === 0) {
-					return null;
+					return { status: 204 };
 				}
 
-				const mensagemIds = mensagens.map((msg) => msg.id);
-				await Mensagem.update(
-					{ lida: true },
-					{ where: { id: { [Op.in]: mensagemIds } }, transaction }
-				);
+				const lastReadMessageId = mensagens[mensagens.length - 1]?.id;
+
+				const pullNextUri = `/api/pix/${ispb}/stream/start?lastMessageId=${lastReadMessageId}`;
 
 				const formattedResponse = MessageFormatter.formatMessages(
 					mensagens,
@@ -47,18 +45,24 @@ class MensagemService {
 				);
 
 				if (formattedResponse.multipart) {
-					return { multipart: true, body: formattedResponse.body };
+					return {
+						status: 200,
+						headers: { "Pull-Next": pullNextUri },
+						body: formattedResponse.body,
+					};
 				} else {
-					return { multipart: false, mensagem: formattedResponse.mensagem };
+					return {
+						status: 200,
+						headers: {"Pull-Next": pullNextUri},
+						mensagem: formattedResponse.mensagem
+					};
 				}
 			});
-
 			return result;
 		} catch (error) {
-			throw new Error("Error fetching messages");
+			throw new Error("Error fetching messages", error);
 		}
 	}
-
 
 	static async generateRandomMensagens(ispb, count) {
 		try {
