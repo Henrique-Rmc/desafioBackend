@@ -3,33 +3,23 @@ const mensagemService = require("../services/mensagemService");
 const { Mensagem } = require("../models");
 
 class mensagemController {
-	async getMensagemHandler(req, res, next) {
-		try {
-			const { ispb } = req.params;
-			const acceptHeader = req.headers.accept;
-			const lastMessageId = req.query.lastMessageId;
 
-			const result = await mensagemService.getMensagens(
-				ispb,
-				acceptHeader,
-				lastMessageId
-			);
-			if (result.status === 204) {
-				return res.status(204).send();
-			}
-			if (result.multipart) {
-				res.setHeader("Content-Type", "multipart/json")
-				res.setHeader("Pull-Next", result.headers["Pull-Next"])
-				return res.sent(result.body)
-			} else {
-				res.setHeader("Pull-Next", result.headers["Pull-Next"])
-				return res.status(200).json(result.mensagem)
-			}
+	async startMonitoringHandler(req, res) {
 
-		} catch (error) {
-			next(error);
-		}
+		const { ispb } = req.params;
+		const acceptHeader = req.headers.accept;
+		const lastMessageId = req.query.lastMessageId || 0;
+
+		mensagemService.monitoring[ispb] = true
+		mensagemService.startMonitoring(ispb, acceptHeader, lastMessageId, res);
 	}
+
+	async stopMonitoringHandler(req, res) {
+    	const { ispb } = req.params;
+    	mensagemService.stopMonitoring(ispb);
+    	res.status(200).send("Monitoramento interrompido com sucesso.");
+  	}
+	
 
 	async postMensagemHandler(req, res) {
 		const { ispb, number } = req.params;

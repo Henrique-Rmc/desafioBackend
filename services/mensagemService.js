@@ -5,6 +5,34 @@ const MessageFormatter = require("../utils/messageFormatter");
 const { Op } = require("sequelize");
 
 class MensagemService {
+	constructor() {
+		this.monitoring = {}
+		this.pullNextUris = {}
+	}
+
+	async startMonitoring(ispb, acceptHeader, lastMessageId, res) {
+		this.monitoring[ispb] = true;
+
+		while (this.monitoring[ispb]) {
+			const mensagens = await this.getMensagens(ispb, acceptHeader, lastMessageId)
+			if (mensagens && mensagens.status == 200) {
+				const pullNext = mensagens.headers["Pull-Next"]
+				this.pullNextUris[ispb] = pullNext
+
+				lastMessageId = pullNext.split("lastMessageId=")[1]
+				
+				if (mensagens.multipart) {
+					res.write(mensagens.body)
+				} else {
+					res.json(mensagens.mensagem)
+					break
+				}
+			}
+			await new Promise((resolve) => setTimeout(resolve, 5000))
+		}
+		res.end()
+	}
+
 	static async getMensagens(ispb, acceptHeader, lastMessageId) {
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
@@ -62,6 +90,9 @@ class MensagemService {
 		} catch (error) {
 			throw new Error("Error fetching messages", error);
 		}
+	}
+	stopMonitoring(ispb) {
+		this.monitoring[ispb] = false
 	}
 
 	static async generateRandomMensagens(ispb, count) {

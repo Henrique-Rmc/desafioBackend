@@ -6,6 +6,9 @@ const mensagemController = require("../controllers/mensagemController");
 router.get("/pix/:ispb/stream/start", (req, res, next) =>
 	mensagemController.getMensagemHandler(req, res, next)
 );
+router.delete("/pix/:ispb/stream/start", (req, res, next) =>
+	mensagemController.getMensagemHandler(req, res, next)
+);
 
 router.post("/util/msgs/:ispb/:number", (req, res, next) =>
 	mensagemController.postMensagemHandler(req, res, next)
