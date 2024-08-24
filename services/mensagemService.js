@@ -1,6 +1,7 @@
 const { Mensagem, Cliente, sequelize } = require("../models");
 const Generator = require("../utils/entityGenerator");
 const MessageFormatter = require("../utils/messageFormatter");
+const { v4: uuidv4 } = require("uuid");
 
 const { Op } = require("sequelize");
 
@@ -11,47 +12,60 @@ class MensagemService {
 		this.iterationIds = {};
 	}
 
-	async startMonitoring(ispb, acceptHeader, lastMessageId, res) {
+	async startMonitoring(ispb, acceptHeader, iterationId, res) {
 		this.monitoring[ispb] = true;
-		const iterationId = this.getOrCreateIterationId(ispb);
+		iterationId = this.getOrCreateIterationId(ispb);
 
-		while (this.monitoring[ispb]) {
-			const mensagens = await this.getMensagens(
-				ispb,
-				acceptHeader,
-				lastMessageId
-			);
-			if (mensagens && mensagens.status == 200) {
-				const pullNext = mensagens.headers["Pull-Next"];
-				this.pullNextUris[ispb] = pullNext;
+		const timeout = 8000; 
+		const startTime = Date.now();
 
-				lastMessageId = pullNext.split("lastMessageId=")[1];
+		try {
+			while (this.monitoring[ispb]) {
+				const elapsedTime = Date.now() - startTime;
 
-				const mensagemIds = mensagens.mensagens.map((msg) => msg.id);
-				await Mensagem.update({ lida: true }, { where: { id: mensagemIds } });
-
-				if (mensagens.multipart) {
-					res.write(mensagens.body);
-				} else {
-					res.json(mensagens.mensagem);
-					break;
+				if (elapsedTime >= timeout) {
+					res.setHeader(
+						"Pull-Next",
+						this.pullNextUris[ispb] ||
+							`/api/pix/${ispb}/stream/start?iterationId=${iterationId}`
+					);
+					res.status(204).send();
+					return;
 				}
-			} else if (mensagens.status === 204) {
-				res.setHeader("Pull-Next", mensagens.headers["Pull-Next"]);
-				res.status(204).send();
-				break;
+
+				const mensagens = await this.getMensagens(ispb, acceptHeader);
+				if (
+					mensagens &&
+					mensagens.status === 200 &&
+					mensagens.mensagens.length > 0
+				) {
+
+					const pullNext = mensagens.headers["Pull-Next"];
+					this.pullNextUris[ispb] = pullNext;
+
+					const mensagemIds = mensagens.mensagens.map((msg) => msg.id);
+					await Mensagem.update({ lida: true }, { where: { id: mensagemIds } });
+
+					if (acceptHeader === "multipart/json") {
+						res.write(mensagens.body); 
+					} else {
+						res.json(mensagens.mensagem);
+					}
+					return; 
+				}
+
+				await new Promise((resolve) => setTimeout(resolve, 500));
 			}
-			await new Promise((resolve) => setTimeout(resolve, 5000));
+		} catch (error) {
+			console.error("Erro no monitoramento:", error);
+		} finally {
+			if (!res.headersSent) {
+				res.end(); 
+			}
 		}
-		res.end();
 	}
 
-	async getMensagens(
-		ispb,
-		acceptHeader,
-		lastMessageTimestamp,
-		lastMessageEndToEndId
-	) {
+	async getMensagens(ispb, acceptHeader) {
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
 				const recebedor = await Cliente.findOne({
@@ -63,29 +77,15 @@ class MensagemService {
 					return {
 						status: 204,
 						headers: {
-							"Pull-Next": `/api/pix/${ispb}/stream/start?lastMessageTimestamp=${lastMessageTimestamp}&lastMessageEndToEndId=${lastMessageEndToEndId}`,
+							"Pull-Next": `/api/pix/${ispb}/stream/start?iterationId=${this.getOrCreateIterationId(ispb)}`,
 						},
 					};
 				}
+
 				const mensagens = await Mensagem.findAll({
 					where: {
 						recebedorId: recebedor.id,
 						lida: false,
-						...(lastMessageTimestamp && {
-							[Op.or]: [
-								{
-									createdAt: {
-										[Op.gt]: new Date(parseInt(lastMessageTimestamp)),
-									},
-								},
-								{
-									createdAt: {
-										[Op.eq]: new Date(parseInt(lastMessageTimestamp)),
-									},
-									endToEndId: { [Op.gt]: lastMessageEndToEndId },
-								},
-							],
-						}),
 					},
 					include: [
 						{ model: Cliente, as: "pagador" },
@@ -93,7 +93,7 @@ class MensagemService {
 					],
 					order: [
 						["createdAt", "ASC"],
-						["endToEndId", "ASC"],
+						["id", "ASC"],
 					],
 					limit: acceptHeader === "multipart/json" ? 10 : 1,
 					transaction,
@@ -103,13 +103,12 @@ class MensagemService {
 					return {
 						status: 204,
 						headers: {
-							"Pull-Next": `/api/pix/${ispb}/stream/start?lastMessageTimestamp=${lastMessageTimestamp}&lastMessageEndToEndId=${lastMessageEndToEndId}`,
+							"Pull-Next": `/api/pix/${ispb}/stream/start?iterationId=${this.getOrCreateIterationId(ispb)}`,
 						},
 					};
 				}
 
-				const lastReadMessage = mensagens[mensagens.length - 1];
-				const pullNextUri = `/api/pix/${ispb}/stream/start?lastMessageTimestamp=${lastReadMessage.createdAt.getTime()}&lastMessageEndToEndId=${lastReadMessage.endToEndId}`;
+				const pullNextUri = `/api/pix/${ispb}/stream/start?iterationId=${this.getOrCreateIterationId(ispb)}`;
 
 				const formattedResponse = MessageFormatter.formatMessages(
 					mensagens,
@@ -119,8 +118,6 @@ class MensagemService {
 				return {
 					status: 200,
 					headers: { "Pull-Next": pullNextUri },
-					lastMessageTimestamp: lastReadMessage.createdAt.getTime(),
-					lastMessageEndToEndId: lastReadMessage.endToEndId,
 					mensagens,
 					...formattedResponse,
 				};
@@ -131,10 +128,10 @@ class MensagemService {
 			throw new Error("Error fetching messages", error);
 		}
 	}
-	async getOrCreateIterationId(ispb) {
+
+	getOrCreateIterationId(ispb) {
 		if (!this.iterationIds[ispb]) {
-			const { nanoid } = await import("nanoid");
-			this.iterationIds[ispb] = nanoid();
+			this.iterationIds[ispb] = uuidv4();
 		}
 		return this.iterationIds[ispb];
 	}
@@ -175,7 +172,7 @@ class MensagemService {
 					const mensagem = Generator.generateMensagem(
 						ispb,
 						pagador.id, 
-						recebedor.id,
+						recebedor.id, 
 						i
 					);
 
