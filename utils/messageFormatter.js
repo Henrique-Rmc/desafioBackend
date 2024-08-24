@@ -36,7 +36,7 @@ class MessageFormatter {
 
 			responseBody += `--simple boundary--`;
 
-			return { multipart: true, body: this.parseMultipartBody(responseBody) };
+			return { multipart: true, body: responseBody };
 		} else {
 			return { multipart: false, mensagem: formattedMessages[0] };
 		}

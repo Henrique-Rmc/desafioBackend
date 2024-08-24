@@ -10,8 +10,9 @@ class mensagemController {
 		const acceptHeader = req.headers.accept;
 		const lastMessageId = req.query.lastMessageId || 0;
 
-		mensagemService.monitoring[ispb] = true
-		mensagemService.startMonitoring(ispb, acceptHeader, lastMessageId, res);
+		mensagemService.monitoring[ispb] = true;
+
+		await mensagemService.startMonitoring(ispb, acceptHeader, lastMessageId, res);
 	}
 
 	async stopMonitoringHandler(req, res) {
