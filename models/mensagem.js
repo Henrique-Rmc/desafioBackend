@@ -18,6 +18,11 @@ module.exports = (sequelize, DataTypes) => {
 
 	Mensagem.init(
 		{
+			id: {
+				type: DataTypes.UUID,
+				defaultValue: DataTypes.UUIDV4,
+				primaryKey: true,
+			},
 			endToEndId: DataTypes.STRING,
 			valor: DataTypes.FLOAT,
 			campoLivre: DataTypes.STRING,
@@ -32,6 +37,7 @@ module.exports = (sequelize, DataTypes) => {
 			sequelize,
 			modelName: "Mensagem",
 			tableName: "Mensagens",
+			timestamps: true,
 		}
 	);
 

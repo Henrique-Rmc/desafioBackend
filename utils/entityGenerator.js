@@ -11,6 +11,7 @@ class Generator {
 
 	static generateCliente(tipo, ispb) {
 		return {
+			id: uuidv4(), 
 			nome: `${tipo} ${Math.floor(Math.random() * 1000)}`,
 			cpfCnpj: Generator.generateCpfCnpj(),
 			ispb: ispb || Math.floor(10000000 + Math.random() * 90000000).toString(),
@@ -22,6 +23,7 @@ class Generator {
 
 	static generateMensagem(ispb, pagadorId, recebedorId, index) {
 		return {
+			id: uuidv4(), 
 			endToEndId: `E${ispb}${new Date().getTime()}${index}`,
 			valor: Generator.generateValor(),
 			campoLivre: "",

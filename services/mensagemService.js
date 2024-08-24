@@ -100,7 +100,12 @@ class MensagemService {
 				});
 
 				if (mensagens.length === 0) {
-					return { status: 204 };
+					return {
+						status: 204,
+						headers: {
+							"Pull-Next": `/api/pix/${ispb}/stream/start?lastMessageTimestamp=${lastMessageTimestamp}&lastMessageEndToEndId=${lastMessageEndToEndId}`,
+						},
+					};
 				}
 
 				const lastReadMessage = mensagens[mensagens.length - 1];
@@ -148,11 +153,6 @@ class MensagemService {
 					transaction,
 				});
 
-				recebedor = await Cliente.findOne({
-					where: { ispb: ispb },
-					transaction,
-				});
-
 				if (!recebedor) {
 					const recebedorData = Generator.generateCliente("Recebedor", ispb);
 
@@ -165,6 +165,7 @@ class MensagemService {
 
 				for (let i = 0; i < count; i++) {
 					const pagadorData = Generator.generateCliente("Pagador");
+
 					const [pagador] = await Cliente.findOrCreate({
 						where: { cpfCnpj: pagadorData.cpfCnpj },
 						defaults: pagadorData,
@@ -173,7 +174,7 @@ class MensagemService {
 
 					const mensagem = Generator.generateMensagem(
 						ispb,
-						pagador.id,
+						pagador.id, 
 						recebedor.id,
 						i
 					);
@@ -183,9 +184,11 @@ class MensagemService {
 
 				await Mensagem.bulkCreate(mensagens, { transaction });
 			});
+
 			return mensagens;
 		} catch (error) {
-			throw new Error("Error generating messages", error);
+			console.error("Erro ao gerar mensagens:", error);
+			throw new Error("Error generating messages");
 		}
 	}
 }

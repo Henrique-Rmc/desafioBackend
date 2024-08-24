@@ -10,18 +10,27 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
 
-  Cliente.init({
-    nome: DataTypes.STRING,
-    cpfCnpj: DataTypes.STRING,
-    ispb: DataTypes.STRING,
-    agencia: DataTypes.STRING,
-    contaTransacional: DataTypes.STRING,
-    tipoConta: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'Cliente', 
-    tableName: 'Clientes',
-  });
+  Cliente.init(
+		{
+			id: {
+				type: DataTypes.UUID,
+				defaultValue: DataTypes.UUIDV4,
+				primaryKey: true,
+			},
+			nome: DataTypes.STRING,
+			cpfCnpj: DataTypes.STRING,
+			ispb: DataTypes.STRING,
+			agencia: DataTypes.STRING,
+			contaTransacional: DataTypes.STRING,
+			tipoConta: DataTypes.STRING,
+		},
+		{
+			sequelize,
+			modelName: "Cliente",
+			tableName: "Clientes",
+			timestamps: true,
+		}
+	);
 
   return Cliente;
 };
