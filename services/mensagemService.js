@@ -16,30 +16,18 @@ class MensagemService {
 		this.monitoring[ispb] = true;
 		iterationId = this.getOrCreateIterationId(ispb);
 
-		const timeout = 8000; 
+		const timeout = 8000;
 		const startTime = Date.now();
 
 		try {
 			while (this.monitoring[ispb]) {
-				const elapsedTime = Date.now() - startTime;
-
-				if (elapsedTime >= timeout) {
-					res.setHeader(
-						"Pull-Next",
-						this.pullNextUris[ispb] ||
-							`/api/pix/${ispb}/stream/start?iterationId=${iterationId}`
-					);
-					res.status(204).send();
-					return;
-				}
-
 				const mensagens = await this.getMensagens(ispb, acceptHeader);
+
 				if (
 					mensagens &&
 					mensagens.status === 200 &&
 					mensagens.mensagens.length > 0
 				) {
-
 					const pullNext = mensagens.headers["Pull-Next"];
 					this.pullNextUris[ispb] = pullNext;
 
@@ -48,13 +36,29 @@ class MensagemService {
 
 					if (acceptHeader === "multipart/json") {
 						res.write(mensagens.body); 
+						res.end(); 
 					} else {
-						res.json(mensagens.mensagem);
+						res.json(mensagens.mensagem); 
 					}
 					return; 
 				}
 
-				await new Promise((resolve) => setTimeout(resolve, 500));
+				const elapsedTime = Date.now() - startTime;
+
+				if (elapsedTime < timeout) {
+					await new Promise((resolve) => setTimeout(resolve, 500)); 
+				} else {
+				
+					if (!res.headersSent) {
+						res.setHeader(
+							"Pull-Next",
+							this.pullNextUris[ispb] ||
+								`/api/pix/${ispb}/stream/start?iterationId=${iterationId}`
+						);
+						res.status(204).send();
+					}
+					return; 
+				}
 			}
 		} catch (error) {
 			console.error("Erro no monitoramento:", error);
