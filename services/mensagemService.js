@@ -10,9 +10,21 @@ class MensagemService {
 		this.monitoring = {};
 		this.pullNextUris = {};
 		this.iterationIds = {};
+		this.activeCollectors = {};
+		this.messageAssignments = {};
 	}
 
 	async startMonitoring(ispb, acceptHeader, iterationId, res) {
+		if (!this.activeCollectors[ispb]) {
+			this.activeCollectors[ispb] = [];
+		}
+
+		if (this.activeCollectors[ispb].length >= 6) {
+			res.status(429).json({ error: "Limite máximo de coletores atingido." });
+			return;
+		}
+
+		this.activeCollectors[ispb].push(iterationId);
 		this.monitoring[ispb] = true;
 		iterationId = this.getOrCreateIterationId(ispb);
 
@@ -21,7 +33,11 @@ class MensagemService {
 
 		try {
 			while (this.monitoring[ispb]) {
-				const mensagens = await this.getMensagens(ispb, acceptHeader);
+				const mensagens = await this.getMensagens(
+					ispb,
+					acceptHeader,
+					iterationId
+				);
 
 				if (
 					mensagens &&
@@ -32,23 +48,21 @@ class MensagemService {
 					this.pullNextUris[ispb] = pullNext;
 
 					const mensagemIds = mensagens.mensagens.map((msg) => msg.id);
-					await Mensagem.update({ lida: true }, { where: { id: mensagemIds } });
 
 					if (acceptHeader === "multipart/json") {
-						res.write(mensagens.body); 
-						res.end(); 
+						res.write(mensagens.body);
+						res.end();
 					} else {
-						res.json(mensagens.mensagem); 
+						res.json(mensagens.mensagem);
 					}
-					return; 
+					return;
 				}
 
 				const elapsedTime = Date.now() - startTime;
 
 				if (elapsedTime < timeout) {
-					await new Promise((resolve) => setTimeout(resolve, 500)); 
+					await new Promise((resolve) => setTimeout(resolve, 500));
 				} else {
-				
 					if (!res.headersSent) {
 						res.setHeader(
 							"Pull-Next",
@@ -57,19 +71,29 @@ class MensagemService {
 						);
 						res.status(204).send();
 					}
-					return; 
+					return;
 				}
 			}
 		} catch (error) {
 			console.error("Erro no monitoramento:", error);
 		} finally {
+			this.finalizeStream(ispb, iterationId);
 			if (!res.headersSent) {
-				res.end(); 
+				res.end();
 			}
 		}
 	}
 
-	async getMensagens(ispb, acceptHeader) {
+	finalizeStream(ispb, iterationId) {
+		if (this.activeCollectors[ispb]) {
+			this.activeCollectors[ispb] = this.activeCollectors[ispb].filter(
+				(id) => id !== iterationId
+			);
+		}
+		delete this.monitoring[ispb];
+	}
+
+	async getMensagens(ispb, acceptHeader, iterationId) {
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
 				const recebedor = await Cliente.findOne({
@@ -89,7 +113,7 @@ class MensagemService {
 				const mensagens = await Mensagem.findAll({
 					where: {
 						recebedorId: recebedor.id,
-						lida: false,
+						id: { [Op.notIn]: this.getAssignedMessageIds() }, 
 					},
 					include: [
 						{ model: Cliente, as: "pagador" },
@@ -99,7 +123,7 @@ class MensagemService {
 						["createdAt", "ASC"],
 						["id", "ASC"],
 					],
-					limit: acceptHeader === "multipart/json" ? 10 : 1,
+					limit: acceptHeader === "multipart/json" ? 10 : 1, 
 					transaction,
 				});
 
@@ -111,6 +135,10 @@ class MensagemService {
 						},
 					};
 				}
+
+				this.messageAssignments[iterationId] = (
+					this.messageAssignments[iterationId] || []
+				).concat(mensagens.map((msg) => msg.id));
 
 				const pullNextUri = `/api/pix/${ispb}/stream/start?iterationId=${this.getOrCreateIterationId(ispb)}`;
 
@@ -129,8 +157,13 @@ class MensagemService {
 
 			return result;
 		} catch (error) {
-			throw new Error("Error fetching messages", error);
+			console.error("Erro ao buscar mensagens:", error);
+			throw new Error("Error fetching messages");
 		}
+	}
+
+	getAssignedMessageIds() {
+		return Object.values(this.messageAssignments).flat();
 	}
 
 	getOrCreateIterationId(ispb) {
@@ -140,8 +173,17 @@ class MensagemService {
 		return this.iterationIds[ispb];
 	}
 
-	stopMonitoring(ispb) {
-		this.monitoring[ispb] = false;
+	stopMonitoring(ispb, iterationId) {
+		if (this.activeCollectors[ispb]) {
+			this.activeCollectors[ispb] = this.activeCollectors[ispb].filter(
+				(id) => id !== iterationId
+			);
+		}
+		delete this.messageAssignments[iterationId];
+
+		if (this.activeCollectors[ispb].length === 0) {
+			delete this.monitoring[ispb];
+		}
 	}
 
 	async generateRandomMensagens(ispb, count) {
