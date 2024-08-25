@@ -4,7 +4,6 @@ const MessageFormatter = require("../utils/messageFormatter");
 const { v4: uuidv4 } = require("uuid");
 
 const { Op } = require("sequelize");
-//versao funcional
 class MensagemService {
 	constructor() {
 		this.monitoring = {};
@@ -18,14 +17,18 @@ class MensagemService {
 		if (!this.activeCollectors[ispb]) {
 			this.activeCollectors[ispb] = [];
 		}
-		if (!this.iterationIds[ispb]) {
-			iterationId = this.getOrCreateIterationId(ispb)
-			this.activeCollectors[ispb].push(iterationId)
+
+		if (this.activeCollectors[ispb].length >= 6) {
+			throw new Error("Limite máximo de coletores atingido.");
 		}
 
-		else if (this.activeCollectors[ispb].length >= 6) {
-			res.status(429).json({ error: "Limite máximo de coletores atingido." });
-			return;
+		if (!this.iterationIds[ispb]) {
+			iterationId = this.getOrCreateIterationId(ispb);
+			this.activeCollectors[ispb].push(iterationId);
+		} else {
+			if (!this.activeCollectors[ispb].includes(iterationId)) {
+				this.activeCollectors[ispb].push(iterationId);
+			}
 		}
 
 		this.monitoring[ispb] = true;
@@ -115,7 +118,7 @@ class MensagemService {
 				const mensagens = await Mensagem.findAll({
 					where: {
 						recebedorId: recebedor.id,
-						id: { [Op.notIn]: this.getAssignedMessageIds() }, 
+						id: { [Op.notIn]: this.getAssignedMessageIds() },
 					},
 					include: [
 						{ model: Cliente, as: "pagador" },
@@ -125,7 +128,7 @@ class MensagemService {
 						["createdAt", "ASC"],
 						["id", "ASC"],
 					],
-					limit: acceptHeader === "multipart/json" ? 10 : 1, 
+					limit: acceptHeader === "multipart/json" ? 10 : 1,
 					transaction,
 				});
 
@@ -148,7 +151,7 @@ class MensagemService {
 					mensagens,
 					acceptHeader
 				);
-				
+
 				return {
 					status: 200,
 					headers: { "Pull-Next": pullNextUri },
@@ -183,7 +186,10 @@ class MensagemService {
 		}
 		delete this.messageAssignments[iterationId];
 
-		if (this.activeCollectors[ispb] && this.activeCollectors[ispb].length === 0) {
+		if (
+			this.activeCollectors[ispb] &&
+			this.activeCollectors[ispb].length === 0
+		) {
 			delete this.monitoring[ispb];
 			delete this.activeCollectors[ispb];
 		}
@@ -220,8 +226,8 @@ class MensagemService {
 
 					const mensagem = Generator.generateMensagem(
 						ispb,
-						pagador.id, 
-						recebedor.id, 
+						pagador.id,
+						recebedor.id,
 						i
 					);
 

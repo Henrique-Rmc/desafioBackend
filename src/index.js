@@ -2,8 +2,11 @@
 const express = require("express");
 const mensagem = require("../routes/mensagemRoutes");
 const { sequelize } = require("../models");
+const cors = require("cors");
 
 const app = express();
+
+app.use(cors());
 
 const PORT = process.env.PORT || 3000;
 
