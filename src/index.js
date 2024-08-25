@@ -4,6 +4,7 @@ const mensagem = require("../routes/mensagemRoutes");
 const { sequelize } = require("../models");
 const cors = require("cors");
 
+
 const app = express();
 
 app.use(cors());
