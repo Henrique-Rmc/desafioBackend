@@ -3,9 +3,7 @@ const mensagemService = require("../services/mensagemService");
 const { Mensagem } = require("../models");
 
 class mensagemController {
-
 	async startMonitoringHandler(req, res) {
-
 		const { ispb } = req.params;
 		const acceptHeader = req.headers.accept;
 		const iterationId = req.query.iterationIds || 0;
@@ -16,11 +14,10 @@ class mensagemController {
 	}
 
 	async stopMonitoringHandler(req, res) {
-    	const { ispb } = req.params;
-    	mensagemService.stopMonitoring(ispb);
-    	res.status(200)
-  	}
-	
+		const { ispb } = req.params;
+		mensagemService.stopMonitoring(ispb);
+		res.status(200);
+	}
 
 	async postMensagemHandler(req, res) {
 		const { ispb, number } = req.params;
@@ -31,7 +28,7 @@ class mensagemController {
 				.json({ error: "Invalid number of mensagens to generate." });
 		}
 		try {
-			const mensagens = await mensagemService.generateRandomMensagens(
+			const mensagens = await mensagemService.generateRandomMessages(
 				ispb,
 				count
 			);

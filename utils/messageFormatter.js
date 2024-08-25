@@ -24,35 +24,14 @@ class MessageFormatter {
 			dataHoraPagamento: mensagem.dataHoraPagamento,
 		}));
 
-		if (acceptHeader === "multipart/json") {
-			let responseBody = "";
-
-			formattedMessages.forEach((mensagem) => {
-				responseBody += `--simple boundary\r\n`;
-				responseBody += `Content-Type: application/json\r\n\r\n`;
-				responseBody += JSON.stringify(mensagem);
-				responseBody += `\r\n`;
-			});
-
-			responseBody += `--simple boundary--`;
-
-			return { multipart: true, body: responseBody };
+		if (formattedMessages.length > 1) {
+			return {
+				multipart: true,
+				body: JSON.stringify(formattedMessages),
+			};
 		} else {
 			return { multipart: false, mensagem: formattedMessages[0] };
 		}
-	}
-
-	static parseMultipartBody(body) {
-		const parts = body.split("--simple boundary");
-
-		const jsonParts = parts
-			.filter((part) => part.includes("Content-Type: application/json"))
-			.map((part) => {
-				const jsonString = part.split("\r\n\r\n")[1];
-				return JSON.parse(jsonString);
-			});
-
-		return jsonParts;
 	}
 }
 

@@ -4,7 +4,7 @@ const MessageFormatter = require("../utils/messageFormatter");
 const { v4: uuidv4 } = require("uuid");
 
 const { Op } = require("sequelize");
-
+//versao funcional
 class MensagemService {
 	constructor() {
 		this.monitoring = {};
@@ -35,7 +35,7 @@ class MensagemService {
 
 		try {
 			while (this.monitoring[ispb]) {
-				const mensagens = await this.getMensagens(
+				const mensagens = await this.getMessages(
 					ispb,
 					acceptHeader,
 					iterationId
@@ -95,7 +95,7 @@ class MensagemService {
 		delete this.monitoring[ispb];
 	}
 
-	async getMensagens(ispb, acceptHeader, iterationId) {
+	async getMessages(ispb, acceptHeader, iterationId) {
 		try {
 			const result = await sequelize.transaction(async (transaction) => {
 				const recebedor = await Cliente.findOne({
@@ -189,7 +189,7 @@ class MensagemService {
 		}
 	}
 
-	async generateRandomMensagens(ispb, count) {
+	async generateRandomMessages(ispb, count) {
 		try {
 			const mensagens = [];
 
