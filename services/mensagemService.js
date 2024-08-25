@@ -18,15 +18,17 @@ class MensagemService {
 		if (!this.activeCollectors[ispb]) {
 			this.activeCollectors[ispb] = [];
 		}
+		if (!this.iterationIds[ispb]) {
+			iterationId = this.getOrCreateIterationId(ispb)
+			this.activeCollectors[ispb].push(iterationId)
+		}
 
-		if (this.activeCollectors[ispb].length >= 6) {
+		else if (this.activeCollectors[ispb].length >= 6) {
 			res.status(429).json({ error: "Limite máximo de coletores atingido." });
 			return;
 		}
 
-		this.activeCollectors[ispb].push(iterationId);
 		this.monitoring[ispb] = true;
-		iterationId = this.getOrCreateIterationId(ispb);
 
 		const timeout = 8000;
 		const startTime = Date.now();
@@ -146,7 +148,7 @@ class MensagemService {
 					mensagens,
 					acceptHeader
 				);
-
+				
 				return {
 					status: 200,
 					headers: { "Pull-Next": pullNextUri },
@@ -181,8 +183,9 @@ class MensagemService {
 		}
 		delete this.messageAssignments[iterationId];
 
-		if (this.activeCollectors[ispb].length === 0) {
+		if (this.activeCollectors[ispb] && this.activeCollectors[ispb].length === 0) {
 			delete this.monitoring[ispb];
+			delete this.activeCollectors[ispb];
 		}
 	}
 

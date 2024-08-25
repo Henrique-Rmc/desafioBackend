@@ -8,17 +8,17 @@ class mensagemController {
 
 		const { ispb } = req.params;
 		const acceptHeader = req.headers.accept;
-		const lastMessageId = req.query.lastMessageId || 0;
+		const iterationId = req.query.iterationIds || 0;
 
 		mensagemService.monitoring[ispb] = true;
 
-		await mensagemService.startMonitoring(ispb, acceptHeader, lastMessageId, res);
+		await mensagemService.startMonitoring(ispb, acceptHeader, iterationId, res);
 	}
 
 	async stopMonitoringHandler(req, res) {
     	const { ispb } = req.params;
     	mensagemService.stopMonitoring(ispb);
-    	res.status(200).send("Monitoramento interrompido com sucesso.");
+    	res.status(200)
   	}
 	
 
