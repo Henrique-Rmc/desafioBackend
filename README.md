@@ -1,7 +1,3 @@
-Aqui está uma versão aprimorada e organizada do seu README para o GitHub:
-
----
-
 # Desafio Backend
 
 Desafio Back-End Developer
@@ -11,6 +7,7 @@ Desafio Back-End Developer
 - **Node.js**
 - **PostgreSQL**
 - **Sequelize (ORM)**
+- **Docker**
 
 ## Sobre o Desafio
 
@@ -41,7 +38,7 @@ O projeto está organizado da seguinte forma:
 
 ### 4. **Services**
 
-- Os services contêm a lógica de negócio principal. É onde acontece o processamento das mensagens e o gerenciamento dos coletores. Gostaria de ter criado uma classe para os coletores mas estava tendo problemas e o tempo nao me permitiu.
+- Os services contêm a lógica de negócio principal. É onde acontece o processamento das mensagens e o gerenciamento dos coletores.
 
 #### Mensagem Service
 
@@ -63,6 +60,10 @@ O `mensagemService.js` possui métodos fundamentais para o funcionamento da apli
 
 ## Como Executar o Projeto
 
+### Usando Docker Compose
+
+O projeto está configurado para rodar com Docker Compose, incluindo a aplicação e o banco de dados PostgreSQL. As migrations serão aplicadas automaticamente durante o processo de inicialização do container.
+
 1. Clone o repositório:
 
    ```bash
@@ -70,56 +71,53 @@ O `mensagemService.js` possui métodos fundamentais para o funcionamento da apli
    cd desafioBackend
    ```
 
-2. Instale as dependências:
+2. Execute o projeto:
 
    ```bash
-   npm install
+   docker-compose up --build
    ```
 
-3. Configure o ambiente:
+Com isso, o projeto estará rodando em `http://localhost:3000`.
 
-   - Crie um arquivo `.env` na raiz do projeto com as configurações do banco de dados e outras variáveis necessárias.
+### Rotas Disponíveis
 
+- **Gerar Mensagens Aleatórias (POST)**:
 
-DB_USERNAME=postgres
+  ```bash
+  POST http://localhost:3000/api/util/msgs/32074987/5
+  ```
 
-DB_PASSWORD=010204
+- **Iniciar Stream com Multipart (GET)**:
 
-DB_DATABASE=pixMessages
+  ```bash
+  GET http://localhost:3000/api/pix/32074987/stream/start
+  - Headers:
+    Accept: multipart/json
+  ```
 
-DB_HOST=db
+- **Iniciar Stream Sem Multipart (GET)**:
 
-DB_PORT=5432
+  ```bash
+  GET http://localhost:3000/api/pix/32074987/stream/start
+  ```
 
-NODE_ENV=production
+- **Parar o Stream (GET)**:
 
-   
+  ```bash
+  GET http://localhost:3000/api/pix/32074987/stream/stop
+  ```
 
-4. Execute as migrations para configurar o banco de dados:
+## Arquivo de Script de Rotas para Insomnia
 
-   ```bash
-   npx sequelize db:migrate
-   ```
+Para facilitar os testes das rotas, incluí um arquivo de script JSON compatível com o Insomnia, que contém todas as requisições configuradas. Esse arquivo está localizado na raiz do projeto com o nome `rotas_insomnia`.
 
-5. Inicie a aplicação:
-   ```bash
-   npm start
-   ```
+Para usá-lo:
 
-## Docker
+1. Abra o Insomnia.
+2. Vá até **Application** > **Import/Export** > **Import Data** > **From File**.
+3. Selecione o arquivo `rotas_insomnia` e importe.
 
-Você também pode usar o Docker para rodar o projeto:
-
-1. Construa a imagem:
-
-   ```bash
-   docker build -t desafio-backend .
-   ```
-
-2. Rode o container:
-   ```bash
-   docker run -p 3000:3000 desafio-backend
-   ```
+Isso irá configurar automaticamente todas as rotas mencionadas acima no Insomnia, prontas para serem testadas.
 
 ## Considerações Finais
 
